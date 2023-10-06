@@ -92,20 +92,49 @@ gui.add(global, 'envMapIntensity')
 // scene.background = environmentMap
 
 // Ground projected skybox
-rgbeLoader.load('/environmentMaps/2/2k.hdr', (environmentMap) => {
-    environmentMap.mapping = THREE.EquirectangularReflectionMapping
-    scene.environment = environmentMap
+// rgbeLoader.load('/environmentMaps/2/2k.hdr', (environmentMap) => {
+//     environmentMap.mapping = THREE.EquirectangularReflectionMapping
+//     scene.environment = environmentMap
     
-    // Skybox
-    const skybox = new GroundProjectedSkybox(environmentMap)
-    skybox.radius = 120
-    skybox.height = 11
-    skybox.scale.setScalar(50)
-    scene.add(skybox)
+// Skybox
+//     const skybox = new GroundProjectedSkybox(environmentMap)
+//     skybox.radius = 120
+//     skybox.height = 11
+//     skybox.scale.setScalar(50)
+//     scene.add(skybox)
 
-    gui.add(skybox, 'radius', 1, 200, 0.1).name('skyboxRadius')
-    gui.add(skybox, 'height', 1, 100, 0.1).name('skyboxHeight')
-})
+//     gui.add(skybox, 'radius', 1, 200, 0.1).name('skyboxRadius')
+//     gui.add(skybox, 'height', 1, 100, 0.1).name('skyboxHeight')
+// })
+
+/**
+ * Real time environment map
+ */
+const environmentMap = textureLoader.load('environmentMaps/blockadesLabsSkybox/interior_views_cozy_wood_cabin_with_cauldron_and_p.jpg')
+environmentMap.mapping = THREE.EquirectangularReflectionMapping
+environmentMap.colorSpace = THREE.SRGBColorSpace
+
+scene.background = environmentMap
+
+// Light Donut
+const lightDonut = new THREE.Mesh(
+    new THREE.TorusGeometry(8, 0.5),
+    new THREE.MeshBasicMaterial({color: new THREE.Color(10, 4, 2)})
+)
+lightDonut.layers.enable(1)
+lightDonut.position.y = 3.5
+scene.add(lightDonut)
+
+// Cube render target
+const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(
+    256, { type: THREE.HalfFloatType }
+)
+
+scene.environment = cubeRenderTarget.texture
+
+// Cube camera
+const cubeCamera = new THREE.CubeCamera(0.1 , 100, cubeRenderTarget)
+cubeCamera.layers.set(1)
 
 /**
  * Torus Knot
@@ -119,21 +148,21 @@ const torusKnot = new THREE.Mesh(
     })
 )
 torusKnot.position.y = 4
-torusKnot.position.x = -4
+// torusKnot.position.x = -4
 scene.add(torusKnot)
 
 /**
  * Models
  */
-gltfLoader.load(
-    '/models/FlightHelmet/glTF/FlightHelmet.gltf',
-    (gltf) => {
-        gltf.scene.scale.set(10, 10, 10)
-        scene.add(gltf.scene)
+// gltfLoader.load(
+//     '/models/FlightHelmet/glTF/FlightHelmet.gltf',
+//     (gltf) => {
+//         gltf.scene.scale.set(10, 10, 10)
+//         scene.add(gltf.scene)
 
-        updateAllMaterials()
-    }
-)
+//         updateAllMaterials()
+//     }
+// )
 
 /**
  * Sizes
@@ -188,6 +217,13 @@ const tick = () =>
 {
     // Time
     const elapsedTime = clock.getElapsedTime()
+
+    // Real time environment map
+    if(lightDonut){
+        lightDonut.rotation.x = Math.sin(elapsedTime) * 2
+
+        cubeCamera.update(renderer, scene)
+    }
 
     // Update controls
     controls.update()
